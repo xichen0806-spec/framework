@@ -20,7 +20,8 @@
   --accent:#FF9B3D; --accent-soft:#4A321C; --on-ink:#1D2326; color-scheme:dark}
 
 *{box-sizing:border-box}
-body{background:var(--board);color:var(--ink);font-family:var(--f-ui);padding-inline:16px;padding-block:16px 32px}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
+body{background:var(--board);color:var(--ink);font-family:var(--f-ui);padding-inline:16px;padding-block:16px calc(104px + env(safe-area-inset-bottom,0px));-webkit-tap-highlight-color:transparent}
 .wrap{max-width:1500px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
 @media (max-width:1000px){.wrap{grid-template-columns:minmax(0,1fr)}}
 
@@ -75,11 +76,13 @@ svg text{font-family:var(--f-board);fill:var(--ink)}
 .zh{font-family:var(--f-zh);font-size:14.5px;line-height:1.65;color:var(--muted);margin:8px 0 0}
 .list .zhs{display:block;color:var(--muted);font-family:var(--f-zh);font-size:12.5px;margin-top:2px}
 .draw{font-family:var(--f-zh);font-size:15px;line-height:1.65;margin:0;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0}
-.nav{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.navbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;padding:12px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px));background:var(--panel);border-top:1px solid var(--rule);box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+.navbar .cnt{font-variant-numeric:tabular-nums;font-size:15px;color:var(--muted);min-width:5ch;text-align:center}
+.nav{display:contents}
 button{font:inherit;cursor:pointer;border-radius:8px}
-.nav button{font-family:var(--f-zh);font-size:15px;padding:11px 10px;border:1px solid var(--rule);background:var(--panel);color:var(--ink)}
-.nav button.primary{background:var(--ink);color:var(--panel);border-color:var(--ink)}
-.nav button:disabled{opacity:.35;cursor:default}
+.navbar button{font-family:var(--f-zh);font-size:18px;min-height:60px;padding:10px 12px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.navbar button.primary{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.navbar button:disabled{opacity:.35;cursor:default}
 button:focus-visible,.list button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .hint{font-family:var(--f-zh);font-size:12px;color:var(--muted);margin:0}
 
@@ -95,8 +98,7 @@ button:focus-visible,.list button:focus-visible,input:focus-visible{outline:2px 
 .prog i.done{background:var(--ink)}
 .prog i.cur{background:var(--accent)}
 
-.list{border-top:1px solid var(--rule);max-height:340px;overflow-y:auto;padding:6px 0}
-@media (max-width:1000px){.list{max-height:none}}
+.list{border-top:1px solid var(--rule);max-height:340px;overflow-y:auto;padding:6px 0;position:relative;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .list h4{margin:10px 20px 4px;font-family:var(--f-zh);font-size:12px;color:var(--muted);font-weight:700;display:flex;justify-content:space-between}
 .list button{display:grid;grid-template-columns:2.2em 1fr;gap:6px;width:100%;text-align:left;border:0;border-radius:0;background:none;color:var(--ink);padding:6px 20px;font-size:13px;line-height:1.4}
 .list button span:first-child{color:var(--muted);font-variant-numeric:tabular-nums}
@@ -138,11 +140,7 @@ button:focus-visible,.list button:focus-visible,input:focus-visible{outline:2px 
       </div>
       <div class="blk"><h3>说</h3><p class="say" id="say" lang="en"></p><p class="zh" id="zh" lang="zh"></p></div>
       <div class="blk"><h3>画</h3><p class="draw" id="draw"></p></div>
-      <div class="nav">
-        <button id="prev">← 上一句</button>
-        <button id="next" class="primary">下一句 →</button>
-      </div>
-      <p class="hint">键盘：→ 或空格下一句，← 上一句</p>
+      <p class="hint">翻页按钮固定在屏幕底部。键盘：→ 或空格下一句，← 上一句</p>
     </div>
     <div class="prog" id="prog"></div>
     <div class="timer">
@@ -154,6 +152,12 @@ button:focus-visible,.list button:focus-visible,input:focus-visible{outline:2px 
     <div class="list" id="list"></div>
   </aside>
 </div>
+
+<nav class="navbar" aria-label="翻页">
+  <button id="prev" type="button">← 上一句</button>
+  <span class="cnt" id="cnt"></span>
+  <button id="next" type="button" class="primary">下一句 →</button>
+</nav>
 
 <script>
 const PARTS=[
@@ -326,7 +330,7 @@ PARTS.forEach((p,pi)=>{
   S.forEach((s,i)=>{ if(s.p!==pi) return;
     const b=document.createElement("button"); b.dataset.i=i;
     b.innerHTML=`<span>${i+1}</span><span>${esc(s.say.length>70?s.say.slice(0,68)+"…":s.say)}<span class="zhs">${esc(s.zh.length>34?s.zh.slice(0,32)+"…":s.zh)}</span></span>`;
-    b.addEventListener("click",()=>go(i)); list.appendChild(b);});
+    b.addEventListener("click",e=>{e.currentTarget.blur();go(i);}); list.appendChild(b);});
 });
 
 function render(){
@@ -345,13 +349,17 @@ function render(){
   $("say").textContent=s.say; $("zh").textContent=s.zh; $("draw").textContent=s.draw;
   $("prev").disabled=cur===0; $("next").disabled=cur===S.length-1;
   [...prog.children].forEach((x,i)=>{x.className=i<cur?"done":i===cur?"cur":"";});
-  list.querySelectorAll("button").forEach(b=>{const c=+b.dataset.i===cur;b.classList.toggle("cur",c); if(c) b.scrollIntoView({block:"nearest"});});
+  list.querySelectorAll("button").forEach(b=>{const c=+b.dataset.i===cur;b.classList.toggle("cur",c);
+    if(c){const top=b.offsetTop,bot=top+b.offsetHeight;
+      if(top<list.scrollTop+30) list.scrollTop=Math.max(0,top-40);
+      else if(bot>list.scrollTop+list.clientHeight-10) list.scrollTop=bot-list.clientHeight+40;}});
+  $("cnt").textContent=step+" / "+S.length;
   pace();
   try{localStorage.setItem("lt_step",cur);}catch(_){}
 }
 function go(i){cur=Math.max(0,Math.min(S.length-1,i)); render();}
-$("prev").addEventListener("click",()=>go(cur-1));
-$("next").addEventListener("click",()=>go(cur+1));
+$("prev").addEventListener("click",e=>{e.currentTarget.blur();go(cur-1);});
+$("next").addEventListener("click",e=>{e.currentTarget.blur();go(cur+1);});
 $("ghost").addEventListener("change",render);
 document.addEventListener("keydown",ev=>{
   if(ev.target.closest("input,textarea")) return;
