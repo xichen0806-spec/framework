@@ -1,0 +1,381 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Licklider 边讲边画</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: whiteboard on the left builds up step by step; the cue card on the right says what to say and what to draw. */
+:root{
+  --board:#F5F7F6; --panel:#FFFFFF; --ink:#1B1F23; --muted:#68717A; --rule:#DCE1E4;
+  --accent:#F5820D; --accent-soft:#FDEBD9; --on-ink:#F5F7F6;
+  --f-board:"Kalam","Comic Sans MS","Noto Sans SC",cursive;
+  --f-ui:"IBM Plex Sans","Noto Sans SC",system-ui,sans-serif;
+  --f-zh:"Noto Sans SC","IBM Plex Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --board:#1D2326; --panel:#252C30; --ink:#E9EDEF; --muted:#9AA4AB; --rule:#3A4348;
+  --accent:#FF9B3D; --accent-soft:#4A321C; --on-ink:#1D2326; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --board:#1D2326; --panel:#252C30; --ink:#E9EDEF; --muted:#9AA4AB; --rule:#3A4348;
+  --accent:#FF9B3D; --accent-soft:#4A321C; --on-ink:#1D2326; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--board);color:var(--ink);font-family:var(--f-ui);padding-inline:16px;padding-block:16px 32px}
+.wrap{max-width:1500px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
+@media (max-width:1000px){.wrap{grid-template-columns:minmax(0,1fr)}}
+
+header.top{max-width:1500px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;justify-content:space-between}
+header.top h1{font-family:var(--f-zh);font-size:20px;font-weight:700;margin:0;text-wrap:balance}
+header.top p{margin:0;color:var(--muted);font-size:13px;font-family:var(--f-zh)}
+
+.boardbox{background:var(--panel);border:1px solid var(--rule);border-radius:10px;overflow-x:auto;min-width:0}
+.boardbox svg{display:block;width:100%;min-width:760px;height:auto}
+.boardtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border-top:1px solid var(--rule);font-family:var(--f-zh);font-size:13px;color:var(--muted)}
+.boardtools label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.key{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+.sw{display:inline-block;width:18px;height:4px;border-radius:2px;background:var(--accent)}
+
+/* svg */
+svg text{font-family:var(--f-board);fill:var(--ink)}
+.el{opacity:0;transition:opacity .35s ease}
+.el.on{opacity:1}
+.el.ghost{opacity:.12}
+.ln{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ln.thick{stroke-width:4}
+.ln.dash{stroke-dasharray:6 5}
+.bx{fill:var(--panel);stroke:var(--ink);stroke-width:1.6}
+.bx.heavy{fill:var(--ink);stroke:var(--ink)}
+.bx.dash{stroke-dasharray:6 4}
+.bx-t{font-weight:700;font-size:15px;text-anchor:middle;dominant-baseline:central}
+.bx.heavy + .bx-t{fill:var(--on-ink)}
+.lab{font-size:12px;fill:var(--muted);paint-order:stroke;stroke:var(--panel);stroke-width:5px;stroke-linejoin:round}
+.note{font-size:13px}
+.sym{fill:none;stroke:var(--ink);stroke-width:1.8}
+.badge rect{fill:var(--accent-soft)}
+.badge text{font-family:var(--f-ui);font-weight:600;font-size:12px;fill:var(--accent);text-anchor:middle;dominant-baseline:central}
+.ahead{fill:var(--ink)}
+.now .ln,.now .sym{stroke:var(--accent)}
+.now .bx{stroke:var(--accent)}
+.now .bx.heavy{fill:var(--accent)}
+.now .bx.heavy + .bx-t{fill:#fff}
+.now text.note,.now text.big{fill:var(--accent)}
+.now .lab{fill:var(--accent)}
+.big{font-weight:700}
+
+/* cue card */
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:10px;display:flex;flex-direction:column;min-width:0;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:1000px){.card{position:static}}
+.cue{padding:18px 20px 16px;display:grid;gap:14px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
+.chip{font-family:var(--f-zh);font-weight:500;color:var(--accent);background:var(--accent-soft);padding:3px 9px;border-radius:999px}
+.opt{font-family:var(--f-zh);border:1px solid var(--rule);padding:2px 8px;border-radius:999px}
+.num{font-variant-numeric:tabular-nums;margin-left:auto}
+.blk h3{margin:0 0 6px;font-family:var(--f-zh);font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted)}
+.say{font-size:18px;line-height:1.5;margin:0;min-height:3em}
+.zh{font-family:var(--f-zh);font-size:14.5px;line-height:1.65;color:var(--muted);margin:8px 0 0}
+.list .zhs{display:block;color:var(--muted);font-family:var(--f-zh);font-size:12.5px;margin-top:2px}
+.draw{font-family:var(--f-zh);font-size:15px;line-height:1.65;margin:0;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0}
+.nav{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:inherit;cursor:pointer;border-radius:8px}
+.nav button{font-family:var(--f-zh);font-size:15px;padding:11px 10px;border:1px solid var(--rule);background:var(--panel);color:var(--ink)}
+.nav button.primary{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.nav button:disabled{opacity:.35;cursor:default}
+button:focus-visible,.list button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-family:var(--f-zh);font-size:12px;color:var(--muted);margin:0}
+
+.timer{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 20px;border-top:1px solid var(--rule);font-family:var(--f-zh);font-size:13px}
+.clock{font-family:var(--f-ui);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;min-width:4.2ch}
+.timer button{border:1px solid var(--rule);background:var(--panel);color:var(--ink);padding:5px 10px;font-family:var(--f-zh);font-size:13px}
+.pace{color:var(--muted)}
+.pace.late{color:#C2410C}
+:root[data-theme="dark"] .pace.late{color:#FF9B3D}
+
+.prog{display:flex;gap:3px;padding:0 20px 14px}
+.prog i{flex:1;height:5px;border-radius:3px;background:var(--rule)}
+.prog i.done{background:var(--ink)}
+.prog i.cur{background:var(--accent)}
+
+.list{border-top:1px solid var(--rule);max-height:340px;overflow-y:auto;padding:6px 0}
+@media (max-width:1000px){.list{max-height:none}}
+.list h4{margin:10px 20px 4px;font-family:var(--f-zh);font-size:12px;color:var(--muted);font-weight:700;display:flex;justify-content:space-between}
+.list button{display:grid;grid-template-columns:2.2em 1fr;gap:6px;width:100%;text-align:left;border:0;border-radius:0;background:none;color:var(--ink);padding:6px 20px;font-size:13px;line-height:1.4}
+.list button span:first-child{color:var(--muted);font-variant-numeric:tabular-nums}
+.list button.cur{background:var(--accent-soft)}
+.list button.cur span:first-child{color:var(--accent);font-weight:600}
+.list button:hover{background:color-mix(in srgb,var(--accent-soft) 60%,transparent)}
+@media (prefers-reduced-motion:reduce){.el{transition:none}}
+</style>
+
+<header class="top">
+  <h1>Licklider &amp; Taylor 边讲边画 · 17 分钟</h1>
+  <p>每一步：先读「说」，同时按「画」动手。橙色是这一句要画的内容。</p>
+</header>
+
+<div class="wrap">
+  <section>
+    <div class="boardbox">
+      <svg id="board" viewBox="0 0 1000 650" role="img" aria-label="逐步搭建的概念图">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink)"/></marker>
+          <marker id="ah-now" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--accent)"/></marker>
+        </defs>
+        <g id="layer"></g>
+      </svg>
+      <div class="boardtools">
+        <label><input type="checkbox" id="ghost"> 淡显还没画的部分（看最终布局）</label>
+        <span class="key"><span class="sw"></span>这一句要画的</span>
+      </div>
+    </div>
+  </section>
+
+  <aside class="card">
+    <div class="cue">
+      <div class="meta">
+        <span class="chip" id="partChip"></span>
+        <span id="tStart"></span>
+        <span class="opt" id="optTag" hidden>超时可只说不画</span>
+        <span class="num" id="stepNum"></span>
+      </div>
+      <div class="blk"><h3>说</h3><p class="say" id="say" lang="en"></p><p class="zh" id="zh" lang="zh"></p></div>
+      <div class="blk"><h3>画</h3><p class="draw" id="draw"></p></div>
+      <div class="nav">
+        <button id="prev">← 上一句</button>
+        <button id="next" class="primary">下一句 →</button>
+      </div>
+      <p class="hint">键盘：→ 或空格下一句，← 上一句</p>
+    </div>
+    <div class="prog" id="prog"></div>
+    <div class="timer">
+      <span class="clock" id="clock">0:00</span>
+      <button id="tgo">开始计时</button>
+      <button id="treset">重置</button>
+      <span class="pace" id="pace">计时练习：和每一步的目标时间对比</span>
+    </div>
+    <div class="list" id="list"></div>
+  </aside>
+</div>
+
+<script>
+const PARTS=[
+  {n:"1 开场",range:"0:00–2:00"},
+  {n:"2 心智模型 · Q1",range:"2:00–7:00"},
+  {n:"3 会议 · Q2",range:"7:00–11:00"},
+  {n:"4 计算机是媒介",range:"11:00–13:00"},
+  {n:"5 社区与 OLIVER · Q3",range:"13:00–16:00"},
+  {n:"6 结尾",range:"16:00–17:00"},
+];
+// p = part index, t = target start time in seconds
+const S=[
+ {p:0,t:0,say:"This is Licklider and Taylor, 1968. At that time, computers were used for payroll and rocket orbits, not for talking.",draw:"指一下课前写好的标题、作者和 1968。"},
+ {p:0,t:20,say:"But they claimed that soon, people would communicate better through a machine than face to face.",draw:"顶部中间写 COMMUNICATION，画粗框（涂黑）。"},
+ {p:0,t:45,say:"To make that claim, they had to change what communication means. For engineers, it is moving signals from A to B.",draw:"往右画箭头，标 is more than，写 information transfer。"},
+ {p:0,t:70,say:"By that definition, two tape recorders playing to each other would be communicating. The authors say no: to communicate, you have to do something with the information.",draw:"把 information transfer 划掉。"},
+ {p:0,t:90,say:"Instead, communication is cooperative modeling: building and using a model together.",draw:"往下画粗箭头，标 is defined as，写 COOPERATIVE MODELING，画粗框。"},
+
+ {p:1,t:120,say:"First question: what do they say about mental models?",draw:"左上角写 Q1 小标签。"},
+ {p:1,t:135,say:"Each of us has a mental model in our head. It is the richest, most flexible model we have.",draw:"从 cooperative modeling 往左下画粗线，标 brings into accord each person's，写 MENTAL MODEL。"},
+ {p:1,t:170,opt:true,say:"But it has problems: it keeps changing, you can't run it twice, and no one else can see it.",draw:"在框左边写四行小字：一个 ✓ 优点，三个 ✗ 缺点。"},
+ {p:1,t:200,say:"So we make it visible: a sketch, an outline, a flow diagram.",draw:"往下画粗箭头，标 is made visible as an，写 EXTERNALIZED MODEL。"},
+ {p:1,t:225,opt:true,say:"Now everyone can point at it, sketch on it, nod, or object, instead of making speeches at each other.",draw:"在框旁画两个指向它的小箭头，写 point · sketch · nod · object。"},
+ {p:1,t:250,say:"The goal is a common model.",draw:"从 cooperative modeling 往右下画细线，标 builds a，写 common model。"},
+ {p:1,t:270,say:"How do we know communication happened? The models change. If two models are built the same way, they just adjust a few details and move closer.",draw:"common model 下面画：两个大小不同的方块 → 两个一样大的方块，写 converge。"},
+ {p:1,t:310,say:"If they are built differently, one or both must be rebuilt. In the paper's cartoon, two people imagine different things and end up imagining a mix of both.",draw:"画：一个方块 + 一个圆 → 方块里套着圆，写 restructure。"},
+ {p:1,t:350,say:"So: mental models are rich but private. Communication makes them visible and reshapes them toward a common model.",draw:"把 mental model → externalized model → common model 这条线再描一遍。",hl:["l_mm_ext","b_ext","l_coop_cm","b_cm"]},
+
+ {p:2,t:420,say:"Second question: meetings.",draw:"在左下写 Q2 和 project meeting。"},
+ {p:2,t:440,say:"In a project meeting, everyone brings a different model of the project: its goals, plans, and status.",draw:"从 project meeting 往上连到 mental model，标 brings together each member's different。"},
+ {p:2,t:475,say:"The purpose: get your colleagues to take your data into their models.",draw:"往下画线，标 aims to get colleagues to absorb，写 primary data。"},
+ {p:2,t:505,say:"And between meetings, our models slowly drift apart again.",draw:"在 mental model 和 project meeting 之间加一条虚线，标 drifts apart between each。"},
+ {p:2,t:535,say:"What does a good meeting look like? Their example is Engelbart's meeting at SRI.",draw:"右下方写 Engelbart's meeting，连到 project meeting，标 is an example of a。"},
+ {p:2,t:560,opt:true,say:"Shared screens, mice, each speaker's outline on screen, files you can call up. Two days of work instead of a week.",draw:"在框下列三行：shared screens + mice / outlines + files / 2 days, not a week。"},
+ {p:2,t:590,say:"That outline on the screen is an externalized model.",draw:"从 Engelbart's meeting 往上画虚线到 externalized model，标 puts outlines on screen as an。"},
+ {p:2,t:610,say:"Compare a phone conference. They guess it falls short not because you can't see faces, but because there is no shared model.",draw:"externalized model 右边写 phone call，画虚线连过去，线上打叉，标 can't share an。"},
+
+ {p:3,t:660,say:"So where does the computer come in? That is the right side of the map.",draw:"从 cooperative modeling 往右画长粗线，写 MEDIUM，画粗框。"},
+ {p:3,t:680,say:"To build a model together, we need something to build it in, like clay for a sculptor. The computer is that clay: we can shape it, it responds, and everyone can work on it.",draw:"线上标 needs a；MEDIUM 下面写 moldable / dynamic / shared。"},
+ {p:3,t:725,opt:true,say:"Engineers wanted the computer as a switch that passes messages. The authors stress modeling, not switching.",draw:"写 switching（划掉）和 MODELING ✓。"},
+
+ {p:4,t:780,say:"Connect these computers, and people far apart can work on the same models. They form on-line communities.",draw:"从 MEDIUM 往下画粗箭头，标 connects people in an，写 ON-LINE COMMUNITY。"},
+ {p:4,t:810,say:"Communities of common interest, not common location.",draw:"在框右下写 common interest, not common location。"},
+ {p:4,t:830,say:"Third question: what is OLIVER? On-line interactive vicarious expediter and responder, named after Oliver Selfridge. In 1968, it didn't exist yet.",draw:"写 Q3 和 OLIVER，从 community 往下画线，标 gives each member an；框下写全称。"},
+ {p:4,t:870,say:"It lives in the network and acts for you: handles small matters, knows your friends, priorities and who can read your files, and learns your habits.",draw:"OLIVER 下面写 acts for you · knows you · learns。"},
+ {p:4,t:905,say:"Is it just a secretary? No. Secretaries will have OLIVERs too.",draw:"不用画，停顿一下，让这句话被听到。"},
+ {p:4,t:925,say:"This is very close to today's personal AI agents. That connection is my own reading, so I mark it with a diamond.",draw:"从 OLIVER 往左画虚线，标 ◆ anticipates，写 ◆ today's AI agents（虚线框）。"},
+
+ {p:5,t:960,say:"They end with a warning: whether this helps society depends on whether being on line is a privilege or a right.",draw:"从 community 右边拉线到右下角，标 helps society only if being on line is a，写 right, not a privilege。"},
+ {p:5,t:985,say:"[Q4：用一句话把这篇文章和 Ben Shaw 的 thesis talk 连起来，待补]",draw:"在底部中间写 Ben Shaw's talk，再画线连到相关节点。"},
+ {p:5,t:1000,say:"So here is my takeaway. Their big idea is that communication means building a shared model. Once you see it that way, the computer is no longer just a switch that passes messages. It becomes a place where we build models together.",draw:"在最底下写 headline，然后沿粗线把主干从头到尾描一遍。",hl:["l_def","l_coop_mm","l_mm_ext","l_coop_med","l_med_com","b_comm","b_coop","b_mm","b_ext","b_med","b_com"]},
+];
+
+const ZH=["这是 Licklider 和 Taylor 1968 年的文章。那时候计算机是用来算工资、算火箭轨道的，不是用来交流的。", "但他们断言，很快人们通过机器沟通会比面对面更有效。", "要支撑这个说法，他们必须先改变「沟通」的含义。对工程师来说，沟通就是把信号从 A 点传到 B 点。", "按这个定义，两台录音机互相播放也算在沟通。作者说不对：要沟通，你必须对信息做点什么。", "他们认为，沟通是「合作建模」：大家一起搭建、使用一个模型。", "第一个问题：作者怎么说心智模型？", "我们每个人脑子里都有一个心智模型。它是我们拥有的最丰富、最灵活的模型。", "但它有缺陷：它一直在变，不能重新跑一遍，而且别人看不到。", "所以我们要把它变得可见：画个草图、写个大纲、画张流程图。", "这样每个人都可以指着它、在上面画、点头或反对，而不是各说各话。", "目标是形成一个共同模型。", "怎么知道沟通发生了？看模型有没有变化。如果两个模型的结构相同，只需要调整几个细节，就会越来越接近。", "如果结构不同，其中一个或两个模型就要重建。文中的漫画里，两个人原本想着不同的东西，最后想到的是两者的结合。", "总结一下：心智模型丰富但私密。沟通让它们变得可见，并把它们重塑成一个共同模型。", "第二个问题：会议。", "在项目会议上，每个人对项目都有不同的模型：目标、计划和现状。", "会议的目的：让同事把你的数据吸收进他们的模型。", "而且两次会议之间，大家的模型又会慢慢偏离。", "好的会议是什么样？作者的例子是 Engelbart 在斯坦福研究所开的会。", "共享屏幕、鼠标、每位发言人的大纲都显示在屏幕上，文件可以随时调出来。两天就完成了一周的工作。", "屏幕上的那份大纲，就是一个外化的模型。", "对比电话会议：作者猜测它效果差，不是因为看不到对方的脸，而是因为没有共享的模型。", "那计算机在哪里发挥作用？这就是图的右半边。", "要一起搭模型，就需要一种搭模型的材料，就像雕塑家需要黏土。计算机就是这块黏土：我们可以塑造它，它会给出反应，而且每个人都能动手改。", "工程师想让计算机做传递消息的开关。作者强调的是建模，而不是交换。", "把这些计算机连起来，相隔很远的人也能在同一个模型上工作。他们就形成了在线社区。", "这些社区因共同的兴趣而形成，而不是因为住在同一个地方。", "第三个问题：OLIVER 是什么？它是「在线交互式代理处理者和应答者」的缩写，以 Oliver Selfridge 命名。1968 年时它还不存在。", "它住在网络里，替你行事：处理小事，知道你的朋友、你的优先顺序、谁可以读你的文件，还会学习你的习惯。", "它只是个秘书吗？不是。秘书也会有自己的 OLIVER。", "这和今天的个人 AI 助手非常接近。这个联系是我自己的解读，所以我用菱形标出来。", "他们最后提出警告：这对社会是好是坏，取决于上网是一种特权还是一种权利。", "[Q4：用一句话把这篇文章和 Ben Shaw 的 thesis talk 连起来，待补]", "这是我的总结。他们最重要的观点是：沟通就是一起搭建一个共享的模型。这样看的话，计算机就不再只是传递消息的开关，而是大家一起搭模型的地方。"];
+S.forEach((x,i)=>x.zh=ZH[i]);
+// ---------- board elements ----------
+const E=[];
+const B=(id,step,cx,cy,w,h,text,o={})=>E.push({id,step,k:"box",cx,cy,w,h,text,...o});
+const L=(id,step,pts,o={})=>E.push({id,step,k:"line",pts,arrow:true,...o});
+const T=(id,step,x,y,text,o={})=>E.push({id,step,k:"text",x,y,text,...o});
+const Q=(id,step,x,y,text)=>E.push({id,step,k:"badge",x,y,text});
+const R=(id,step,svg)=>E.push({id,step,k:"raw",svg});
+
+T("title",1,24,34,"The Computer as a Communication Device",{size:21,cls:"big"});
+T("auth",1,24,56,"Licklider & Taylor · 1968",{size:14,muted:true});
+B("b_comm",2,500,80,210,44,"COMMUNICATION",{heavy:true});
+L("l_info",3,[[605,80],[722,80]]); T("t_info",3,663,70,"is more than",{lab:true,anchor:"middle"});
+B("b_info",3,812,80,176,40,"information transfer");
+R("x_info",4,`<path class="sym" d="M730,84 L894,76"/>`);
+L("l_def",5,[[500,102],[500,146]],{thick:true}); T("t_def",5,510,128,"is defined as",{lab:true});
+B("b_coop",5,500,170,250,46,"COOPERATIVE MODELING",{heavy:true});
+
+Q("q1",6,48,215,"Q1");
+L("l_coop_mm",7,[[375,170],[290,170],[290,246]],{thick:true});
+T("t_coop_mm",7,298,214,"brings into accord each person's",{lab:true});
+B("b_mm",7,290,270,190,46,"MENTAL MODEL",{heavy:true});
+T("n_mm1",8,30,246,"✓ richest, most flexible",{note:true});
+T("n_mm2",8,30,264,"✗ won't stand still",{note:true});
+T("n_mm3",8,30,282,"✗ can't rerun it",{note:true});
+T("n_mm4",8,30,300,"✗ only its owner sees it",{note:true,size:12.5});
+L("l_mm_ext",9,[[290,293],[290,354]],{thick:true}); T("t_mm_ext",9,298,330,"is made visible as an",{lab:true});
+B("b_ext",9,290,378,210,46,"EXTERNALIZED MODEL",{heavy:true});
+R("p_ext",10,`<path class="sym" d="M168,346 L183,360"/><path class="sym" d="M176,362 L184,361 L182,353"/><path class="sym" d="M412,404 L398,394"/><path class="sym" d="M397,402 L397,394 L405,393"/>`);
+T("n_ext",10,410,338,"point · sketch",{note:true,size:12.5}); T("n_ext2",10,410,354,"nod · object",{note:true,size:12.5});
+L("l_coop_cm",11,[[600,193],[600,228],[655,228],[655,248]]); T("t_coop_cm",11,606,220,"builds a",{lab:true});
+B("b_cm",11,655,270,160,40,"common model");
+R("s_conv",12,`<rect class="sym" x="640" y="305" width="12" height="12"/><rect class="sym" x="657" y="300" width="20" height="20"/><path class="sym" d="M684,311 L700,311"/><path class="sym" d="M694,306 L701,311 L694,316"/><rect class="sym" x="706" y="303" width="14" height="14"/><rect class="sym" x="724" y="303" width="14" height="14"/>`);
+T("t_conv",12,630,316,"converge",{note:true,anchor:"end"});
+R("s_rest",13,`<rect class="sym" x="640" y="340" width="18" height="18"/><text x="663" y="354" class="note">+</text><circle class="sym" cx="682" cy="349" r="9"/><path class="sym" d="M696,349 L711,349"/><path class="sym" d="M705,344 L712,349 L705,354"/><rect class="sym" x="717" y="338" width="22" height="22"/><circle class="sym" cx="728" cy="349" r="6.5"/>`);
+T("t_rest",13,630,354,"restructure",{note:true,anchor:"end"});
+
+Q("q2",15,48,430,"Q2");
+B("b_pm",15,110,472,150,40,"project meeting");
+L("l_pm_mm",16,[[110,452],[110,322],[230,322],[230,295]]);
+T("t_pm_mm",16,116,410,"brings together each",{lab:true}); T("t_pm_mm2",16,116,424,"member's different",{lab:true});
+L("l_pm_pd",17,[[110,492],[110,580]]);
+T("t_pm_pd",17,116,550,"aims to get colleagues",{lab:true,size:11.5}); T("t_pm_pd2",17,116,564,"to absorb",{lab:true,size:11.5});
+B("b_pd",17,110,600,130,36,"primary data");
+L("l_drift",18,[[80,452],[80,310],[205,310],[205,295]],{dash:true,arrow:false});
+T("t_drift",18,86,352,"drifts apart between each",{lab:true});
+B("b_eng",19,335,526,190,40,"Engelbart's meeting");
+L("l_eng_pm",19,[[240,520],[214,520],[214,484],[188,484]]); T("t_eng_pm",19,222,500,"is an example of a",{lab:true});
+T("n_eng1",20,245,566,"shared screens + mice",{note:true});
+T("n_eng2",20,245,583,"outlines + files on call",{note:true});
+T("n_eng3",20,245,600,"2 days, not a week",{note:true});
+L("l_eng_ext",21,[[392,506],[392,403]],{dash:true}); T("t_eng_ext",21,386,452,"puts outlines on",{lab:true,anchor:"end"}); T("t_eng_ext2",21,386,466,"screen as an",{lab:true,anchor:"end"});
+B("b_phone",22,508,412,110,36,"phone call");
+L("l_ph_ext",22,[[453,412],[420,412],[420,392],[397,392]],{dash:true});
+R("x_ph",22,`<path class="sym" d="M429,405 L441,419 M441,405 L429,419"/>`);
+T("t_ph",22,508,446,"can't share an",{lab:true,anchor:"middle"});
+
+L("l_coop_med",23,[[626,170],[728,170]],{thick:true});
+T("t_coop_med",24,677,160,"needs a",{lab:true,anchor:"middle"});
+B("b_med",23,830,170,200,46,"MEDIUM",{heavy:true});
+T("n_med1",24,870,214,"moldable",{note:true}); T("n_med2",24,870,230,"dynamic",{note:true}); T("n_med3",24,870,246,"shared",{note:true});
+T("n_sw",25,870,274,"switching",{note:true,muted:true});
+R("x_sw",25,`<path class="sym" d="M868,270 L937,270"/>`);
+T("n_mod",25,870,298,"MODELING ✓",{note:true,cls:"big"});
+
+L("l_med_com",26,[[855,193],[855,355]],{thick:true}); T("t_med_com",26,863,332,"connects people in an",{lab:true});
+B("b_com",26,855,380,200,46,"ON-LINE COMMUNITY",{heavy:true});
+T("n_ci1",27,905,424,"common interest,",{note:true,anchor:"middle"}); T("n_ci2",27,905,440,"not common location",{note:true,anchor:"middle"});
+Q("q3",28,920,474,"Q3");
+L("l_com_ol",28,[[790,404],[790,452]]); T("t_com_ol",28,782,432,"gives each member an",{lab:true,anchor:"end"});
+B("b_ol",28,810,474,150,40,"OLIVER");
+T("n_ol0",28,800,510,"on-line interactive vicarious expediter & responder",{size:11,muted:true,anchor:"middle"});
+T("n_ol1",29,800,529,"acts for you · knows you · learns",{note:true,anchor:"middle"});
+L("l_ol_ai",31,[[734,474],[638,474]],{dash:true}); T("t_ol_ai",31,686,464,"◆ anticipates",{lab:true,anchor:"middle"});
+B("b_ai",31,570,474,132,38,"◆ today's AI agents",{dash:true,size:13.5});
+
+L("l_com_pr",32,[[956,372],[976,372],[976,568]]);
+T("t_com_pr",32,968,548,"helps society only if",{lab:true,anchor:"end"}); T("t_com_pr2",32,968,562,"being on line is a",{lab:true,anchor:"end"});
+B("b_pr",32,880,588,180,36,"right, not a privilege");
+B("b_ben",33,570,600,150,36,"Ben Shaw's talk  (Q4)",{dash:true,size:13.5});
+T("hl",34,500,634,"Communication = building a shared model.  So the computer is a place to model together, not just a message switch.",{size:14,anchor:"middle",cls:"big"});
+
+const NS="http://www.w3.org/2000/svg";
+const layer=document.getElementById("layer");
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const nodes={};
+for(const e of E){
+  const g=document.createElementNS(NS,"g"); g.setAttribute("class","el"); g.dataset.id=e.id;
+  let h="";
+  if(e.k==="box"){
+    const x=e.cx-e.w/2,y=e.cy-e.h/2;
+    h=`<rect class="bx${e.heavy?" heavy":""}${e.dash?" dash":""}" x="${x}" y="${y}" width="${e.w}" height="${e.h}" rx="3"/><text class="bx-t" x="${e.cx}" y="${e.cy+1}"${e.size?` style="font-size:${e.size}px"`:""}>${esc(e.text)}</text>`;
+  }else if(e.k==="line"){
+    const d="M"+e.pts.map(p=>p.join(",")).join(" L");
+    h=`<path class="ln${e.thick?" thick":""}${e.dash?" dash":""}" d="${d}"${e.arrow?` marker-end="url(#ah)"`:""}/>`;
+  }else if(e.k==="text"){
+    const cls=[e.lab?"lab":"",e.note?"note":"",e.cls||""].join(" ");
+    const st=[e.size?`font-size:${e.size}px`:"",e.muted?"fill:var(--muted)":""].filter(Boolean).join(";");
+    h=`<text class="${cls}" x="${e.x}" y="${e.y}" text-anchor="${e.anchor||"start"}"${st?` style="${st}"`:""}>${esc(e.text)}</text>`;
+  }else if(e.k==="badge"){
+    h=`<g class="badge"><rect x="${e.x-18}" y="${e.y-11}" width="36" height="22" rx="11"/><text x="${e.x}" y="${e.y+1}">${e.text}</text></g>`;
+  }else h=e.svg;
+  g.innerHTML=h; layer.appendChild(g); nodes[e.id]={e,g};
+}
+
+// ---------- cue card ----------
+const $=id=>document.getElementById(id);
+const fmt=s=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+let cur=0;
+try{const v=parseInt(localStorage.getItem("lt_step"),10); if(v>=0&&v<S.length) cur=v;}catch(_){}
+
+const prog=$("prog"); S.forEach(()=>prog.appendChild(document.createElement("i")));
+const list=$("list");
+PARTS.forEach((p,pi)=>{
+  const h=document.createElement("h4"); h.innerHTML=`<span>${p.n}</span><span>${p.range}</span>`; list.appendChild(h);
+  S.forEach((s,i)=>{ if(s.p!==pi) return;
+    const b=document.createElement("button"); b.dataset.i=i;
+    b.innerHTML=`<span>${i+1}</span><span>${esc(s.say.length>70?s.say.slice(0,68)+"…":s.say)}<span class="zhs">${esc(s.zh.length>34?s.zh.slice(0,32)+"…":s.zh)}</span></span>`;
+    b.addEventListener("click",()=>go(i)); list.appendChild(b);});
+});
+
+function render(){
+  const s=S[cur], step=cur+1, ghost=$("ghost").checked;
+  const hl=new Set(s.hl||[]);
+  for(const id in nodes){
+    const {e,g}=nodes[id];
+    const on=e.step<=step, now=e.step===step||hl.has(id);
+    g.classList.toggle("on",on); g.classList.toggle("ghost",!on&&ghost); g.classList.toggle("now",now&&on);
+    g.querySelectorAll("path[marker-end]").forEach(p=>p.setAttribute("marker-end",now?"url(#ah-now)":"url(#ah)"));
+  }
+  $("partChip").textContent="Part "+PARTS[s.p].n;
+  $("tStart").textContent="目标 "+fmt(s.t);
+  $("optTag").hidden=!s.opt;
+  $("stepNum").textContent=step+" / "+S.length;
+  $("say").textContent=s.say; $("zh").textContent=s.zh; $("draw").textContent=s.draw;
+  $("prev").disabled=cur===0; $("next").disabled=cur===S.length-1;
+  [...prog.children].forEach((x,i)=>{x.className=i<cur?"done":i===cur?"cur":"";});
+  list.querySelectorAll("button").forEach(b=>{const c=+b.dataset.i===cur;b.classList.toggle("cur",c); if(c) b.scrollIntoView({block:"nearest"});});
+  pace();
+  try{localStorage.setItem("lt_step",cur);}catch(_){}
+}
+function go(i){cur=Math.max(0,Math.min(S.length-1,i)); render();}
+$("prev").addEventListener("click",()=>go(cur-1));
+$("next").addEventListener("click",()=>go(cur+1));
+$("ghost").addEventListener("change",render);
+document.addEventListener("keydown",ev=>{
+  if(ev.target.closest("input,textarea")) return;
+  if(ev.key==="ArrowRight"||ev.key===" "){ev.preventDefault();go(cur+1);}
+  if(ev.key==="ArrowLeft"){ev.preventDefault();go(cur-1);}
+});
+
+// ---------- practice timer ----------
+let t0=null, acc=0, tick=null;
+const elapsed=()=>acc+(t0?(Date.now()-t0)/1000:0);
+function pace(){
+  const e=elapsed(), p=$("pace");
+  if(!t0&&acc===0){p.textContent="计时练习：和每一步的目标时间对比";p.classList.remove("late");return;}
+  const d=e-S[cur].t;
+  if(d>20){p.textContent="比目标慢 "+fmt(d)+"，考虑跳过可省略的画";p.classList.add("late");}
+  else{p.textContent=d<-20?"比目标快 "+fmt(-d):"节奏正好";p.classList.remove("late");}
+}
+function show(){$("clock").textContent=fmt(elapsed());pace();}
+$("tgo").addEventListener("click",()=>{
+  if(t0){acc=elapsed();t0=null;clearInterval(tick);$("tgo").textContent="继续";}
+  else{t0=Date.now();tick=setInterval(show,500);$("tgo").textContent="暂停";}
+});
+$("treset").addEventListener("click",()=>{t0=null;acc=0;clearInterval(tick);$("tgo").textContent="开始计时";show();});
+render();
+</script>
+
+</body></html>
